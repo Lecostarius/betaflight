@@ -51,6 +51,7 @@ typedef enum {
     // BEEPER_ALL and BEEPER_PREFERENCE must remain at the bottom of this enum
 } beeperMode_e;
 
+
 void beeper(beeperMode_e mode);
 void beeperSilence(void);
 void beeperUpdate(timeUs_t currentTimeUs);
