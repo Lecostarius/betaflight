@@ -1,18 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdint.h>
@@ -30,6 +33,8 @@
 #include "fc/config.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
+
+#include "flight/failsafe.h"
 
 #include "io/vtx.h"
 #include "io/vtx_string.h"
@@ -49,7 +54,7 @@ PG_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig,
     .power = VTX_SETTINGS_DEFAULT_POWER,
     .freq = VTX_SETTINGS_DEFAULT_FREQ,
     .pitModeFreq = VTX_SETTINGS_DEFAULT_PITMODE_FREQ,
-    .lowPowerDisarm = VTX_SETTINGS_DEFAULT_LOW_POWER_DISARM,
+    .lowPowerDisarm = VTX_LOW_POWER_DISARM_OFF,
 );
 
 typedef enum {
@@ -87,7 +92,7 @@ void vtxInit(void)
     }
 }
 
-static vtxSettingsConfig_t vtxGetSettings(void)
+STATIC_UNIT_TESTED vtxSettingsConfig_t vtxGetSettings(void)
 {
     vtxSettingsConfig_t settings = {
         .band = vtxSettingsConfig()->band,
@@ -99,14 +104,16 @@ static vtxSettingsConfig_t vtxGetSettings(void)
     };
 
 #if defined(VTX_SETTINGS_FREQCMD)
-    if (IS_RC_MODE_ACTIVE(BOXVTXPITMODE) && isModeActivationConditionPresent(BOXVTXPITMODE) && settings.pitModeFreq) {
+    if (IS_RC_MODE_ACTIVE(BOXVTXPITMODE) && settings.pitModeFreq) {
         settings.band = 0;
         settings.freq = settings.pitModeFreq;
         settings.power = VTX_SETTINGS_DEFAULT_POWER;
     }
 #endif
 
-    if (!ARMING_FLAG(ARMED) && settings.lowPowerDisarm) {
+    if (!ARMING_FLAG(ARMED) && !failsafeIsActive() &&
+        (settings.lowPowerDisarm == VTX_LOW_POWER_DISARM_ALWAYS ||
+        (settings.lowPowerDisarm == VTX_LOW_POWER_DISARM_UNTIL_FIRST_ARM && !ARMING_FLAG(WAS_EVER_ARMED)))) {
         settings.power = VTX_SETTINGS_DEFAULT_POWER;
     }
 
@@ -161,27 +168,36 @@ static bool vtxProcessPower(vtxDevice_t *vtxDevice)
 
 static bool vtxProcessPitMode(vtxDevice_t *vtxDevice)
 {
+    static bool prevPmSwitchState = false;
+
     uint8_t pitOnOff;
     if (!ARMING_FLAG(ARMED) && vtxCommonGetPitMode(vtxDevice, &pitOnOff)) {
-        if (IS_RC_MODE_ACTIVE(BOXVTXPITMODE)) {
+        bool currPmSwitchState = IS_RC_MODE_ACTIVE(BOXVTXPITMODE);
+
+        if (currPmSwitchState != prevPmSwitchState) {
+            prevPmSwitchState = currPmSwitchState;
+
+            if (currPmSwitchState) {
 #if defined(VTX_SETTINGS_FREQCMD)
-            if (vtxSettingsConfig()->pitModeFreq) {
-                return false;
-            }
+                if (vtxSettingsConfig()->pitModeFreq) {
+                    return false;
+                }
 #endif
-            if (isModeActivationConditionPresent(BOXVTXPITMODE)) {
                 if (!pitOnOff) {
                     vtxCommonSetPitMode(vtxDevice, true);
+
                     return true;
                 }
             } else {
                 if (pitOnOff) {
                     vtxCommonSetPitMode(vtxDevice, false);
+
                     return true;
                 }
             }
         }
     }
+
     return false;
 }
 
@@ -216,30 +232,34 @@ void vtxUpdate(timeUs_t currentTimeUs)
         // Check input sources for config updates
         vtxControlInputPoll();
 
+        const uint8_t startingSchedule = currentSchedule;
         bool vtxUpdatePending = false;
-        switch (currentSchedule) {
-        case VTX_PARAM_POWER:
-            vtxUpdatePending = vtxProcessPower(vtxDevice);
-            break;
-        case VTX_PARAM_BANDCHAN:
-            if (vtxGetSettings().band) {
-                vtxUpdatePending = vtxProcessBandAndChannel(vtxDevice);
+        do {
+            switch (currentSchedule) {
+                case VTX_PARAM_POWER:
+                    vtxUpdatePending = vtxProcessPower(vtxDevice);
+                    break;
+                case VTX_PARAM_BANDCHAN:
+                    if (vtxGetSettings().band) {
+                        vtxUpdatePending = vtxProcessBandAndChannel(vtxDevice);
 #if defined(VTX_SETTINGS_FREQCMD)
-            } else {
-                vtxUpdatePending = vtxProcessFrequency(vtxDevice);
+                    } else {
+                        vtxUpdatePending = vtxProcessFrequency(vtxDevice);
 #endif
+                    }
+                    break;
+                case VTX_PARAM_PITMODE:
+                    vtxUpdatePending = vtxProcessPitMode(vtxDevice);
+                    break;
+                case VTX_PARAM_CONFIRM:
+                    vtxUpdatePending = vtxProcessStateUpdate(vtxDevice);
+                    break;
+                default:
+                    break;
             }
-            break;
-        case VTX_PARAM_PITMODE:
-            vtxUpdatePending = vtxProcessPitMode(vtxDevice);
-            break;
-        case VTX_PARAM_CONFIRM:
-            vtxUpdatePending = vtxProcessStateUpdate(vtxDevice);
-            break;
-        default:
-            break;
-        }
-        currentSchedule = (currentSchedule + 1) % VTX_PARAM_COUNT;
+            currentSchedule = (currentSchedule + 1) % VTX_PARAM_COUNT;
+        } while (!vtxUpdatePending && currentSchedule != startingSchedule);
+
         if (!ARMING_FLAG(ARMED) || vtxUpdatePending) {
             vtxCommonProcess(vtxDevice, currentTimeUs);
         }

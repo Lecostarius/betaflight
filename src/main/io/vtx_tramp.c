@@ -1,18 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 /* Created by jflyper */
@@ -117,9 +120,9 @@ static uint8_t trampChecksum(uint8_t *trampBuf)
     return cksum;
 }
 
-void trampCmdU16(uint8_t cmd, uint16_t param)
+static void trampCmdU16(uint8_t cmd, uint16_t param)
 {
-    if (!trampSerialPort) {
+    if (!trampSerialPort || IS_RC_MODE_ACTIVE(BOXVTXCONTROLDISABLE)) {
         return;
     }
 
@@ -214,7 +217,7 @@ void trampSetPitMode(uint8_t onoff)
 }
 
 // returns completed response code
-char trampHandleResponse(void)
+static char trampHandleResponse(void)
 {
     const uint8_t respCode = trampRespBuffer[1];
 
@@ -330,7 +333,7 @@ static char trampReceive(uint32_t currentTimeUs)
 
                 trampResetReceiver();
 
-                if ((trampRespBuffer[14] == cksum) && (trampRespBuffer[15] == 0)) {
+                if ((trampRespBuffer[14] == cksum) && (trampRespBuffer[15] == 0) && !IS_RC_MODE_ACTIVE(BOXVTXCONTROLDISABLE)) {
                     return trampHandleResponse();
                 }
             }

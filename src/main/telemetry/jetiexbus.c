@@ -1,19 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
  *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdbool.h>
@@ -36,8 +38,10 @@
 #include "drivers/serial_uart.h"
 #include "drivers/time.h"
 
-#include "flight/altitude.h"
+#include "flight/position.h"
 #include "flight/imu.h"
+
+#include "pg/rx.h"
 
 #include "io/serial.h"
 #include "rx/rx.h"
@@ -192,7 +196,9 @@ void initJetiExBusTelemetry(void)
     }
     if (sensors(SENSOR_BARO)) {
         bitArraySet(&exSensorEnabled, EX_ALTITUDE);
+#ifdef USE_VARIO
         bitArraySet(&exSensorEnabled, EX_VARIO);
+#endif
     }
     if (sensors(SENSOR_ACC)) {
         bitArraySet(&exSensorEnabled, EX_ROLL_ANGLE);
@@ -232,7 +238,7 @@ int32_t getSensorValue(uint8_t sensor)
         break;
 
     case EX_ALTITUDE:
-        return getEstimatedAltitude();
+        return getEstimatedAltitudeCm() / 100;
         break;
 
     case EX_CAPACITY:
@@ -255,9 +261,11 @@ int32_t getSensorValue(uint8_t sensor)
         return attitude.values.yaw;
         break;
 
+#ifdef USE_VARIO
     case EX_VARIO:
         return getEstimatedVario();
         break;
+#endif
 
     default:
         return -1;

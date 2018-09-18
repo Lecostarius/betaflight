@@ -1,18 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdbool.h>
@@ -21,7 +24,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include <platform.h>
+#include "platform.h"
 
 #ifdef USE_LED_STRIP
 
@@ -37,6 +40,7 @@
 #include "config/feature.h"
 #include "pg/pg.h"
 #include "pg/pg_ids.h"
+#include "pg/rx.h"
 
 #include "drivers/light_ws2811strip.h"
 #include "drivers/serial.h"
@@ -50,7 +54,6 @@
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
-#include "flight/navigation.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
@@ -73,6 +76,10 @@
 #include "telemetry/telemetry.h"
 
 PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 0);
+
+hsvColor_t *colors;
+const modeColorIndexes_t *modeColors;
+specialColorIndexes_t specialColors;
 
 static bool ledStripInitialised = false;
 static bool ledStripEnabled = true;
@@ -162,7 +169,7 @@ void pgResetFn_ledStripConfig(ledStripConfig_t *ledStripConfig)
     memset(ledStripConfig->ledConfigs, 0, LED_MAX_STRIP_LENGTH * sizeof(ledConfig_t));
     // copy hsv colors as default
     memset(ledStripConfig->colors, 0, ARRAYLEN(hsv) * sizeof(hsvColor_t));
-    BUILD_BUG_ON(LED_CONFIGURABLE_COLOR_COUNT < ARRAYLEN(hsv));
+    STATIC_ASSERT(LED_CONFIGURABLE_COLOR_COUNT >= ARRAYLEN(hsv), LED_CONFIGURABLE_COLOR_COUNT_invalid);
     for (unsigned colorIndex = 0; colorIndex < ARRAYLEN(hsv); colorIndex++) {
         ledStripConfig->colors[colorIndex] = hsv[colorIndex];
     }
@@ -171,13 +178,9 @@ void pgResetFn_ledStripConfig(ledStripConfig_t *ledStripConfig)
     ledStripConfig->ledstrip_visual_beeper = 0;
     ledStripConfig->ledstrip_aux_channel = THROTTLE;
 
-    for (int i = 0; i < USABLE_TIMER_CHANNEL_COUNT; i++) {
-        if (timerHardware[i].usageFlags & TIM_USE_LED) {
-            ledStripConfig->ioTag = timerHardware[i].tag;
-            return;
-        }
-    }
-    ledStripConfig->ioTag = IO_TAG_NONE;
+#ifndef UNIT_TEST
+    ledStripConfig->ioTag = timerioTagGetByUsage(TIM_USE_LED, 0);
+#endif
 }
 
 static int scaledThrottle;
@@ -251,6 +254,7 @@ void reevaluateLedConfig(void)
     updateLedCount();
     updateDimensions();
     updateLedRingCounts();
+    updateRequiredOverlay();
 }
 
 // get specialColor by index
@@ -495,7 +499,7 @@ static void applyLedFixedLayers(void)
 
         case LED_FUNCTION_RSSI:
             color = HSV(RED);
-            hOffset += scaleRange(getRssi() * 100, 0, 1023, -30, 120);
+            hOffset += scaleRange(getRssiPercent(), 0, 100, -30, 120);
             break;
 
         default:
@@ -714,7 +718,7 @@ static void applyLedRssiLayer(bool updateNow, timeUs_t *timer)
     int timerDelay = HZ_TO_US(1);
 
     if (updateNow) {
-        int state = (getRssi() * 100) / 1023;
+        int state = getRssiPercent();
 
         if (state > 50) {
             flash = true;
@@ -1013,6 +1017,9 @@ typedef enum {
 } timId_e;
 
 static timeUs_t timerVal[timTimerCount];
+static uint16_t disabledTimerMask;
+
+STATIC_ASSERT(timTimerCount <= sizeof(disabledTimerMask) * 8, disabledTimerMask_too_small);
 
 // function to apply layer.
 // function must replan self using timer pointer
@@ -1040,6 +1047,29 @@ static applyLayerFn_timed* layerTable[] = {
     [timRing] = &applyLedThrustRingLayer
 };
 
+bool isOverlayTypeUsed(ledOverlayId_e overlayType)
+{
+    for (int ledIndex = 0; ledIndex < ledCounts.count; ledIndex++) {
+        const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[ledIndex];
+        if (ledGetOverlayBit(ledConfig, overlayType)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void updateRequiredOverlay(void)
+{
+    disabledTimerMask = 0;
+    disabledTimerMask |= !isOverlayTypeUsed(LED_OVERLAY_BLINK) << timBlink;
+    disabledTimerMask |= !isOverlayTypeUsed(LED_OVERLAY_LARSON_SCANNER) << timLarson;
+    disabledTimerMask |= !isOverlayTypeUsed(LED_OVERLAY_WARNING) << timWarning;
+#ifdef USE_VTX_COMMON
+    disabledTimerMask |= !isOverlayTypeUsed(LED_OVERLAY_VTX) << timVtx;
+#endif
+    disabledTimerMask |= !isOverlayTypeUsed(LED_OVERLAY_INDICATOR) << timIndicator;
+}
+
 void ledStripUpdate(timeUs_t currentTimeUs)
 {
     if (!(ledStripInitialised && isWS2811LedStripReady())) {
@@ -1060,14 +1090,16 @@ void ledStripUpdate(timeUs_t currentTimeUs)
     // test all led timers, setting corresponding bits
     uint32_t timActive = 0;
     for (timId_e timId = 0; timId < timTimerCount; timId++) {
-        // sanitize timer value, so that it can be safely incremented. Handles inital timerVal value.
-        const timeDelta_t delta = cmpTimeUs(now, timerVal[timId]);
-        // max delay is limited to 5s
-        if (delta < 0 && delta > -MAX_TIMER_DELAY)
-            continue;  // not ready yet
-        timActive |= 1 << timId;
-        if (delta >= 100 * 1000 || delta < 0) {
-            timerVal[timId] = now;
+        if (!(disabledTimerMask & (1 << timId))) {
+            // sanitize timer value, so that it can be safely incremented. Handles inital timerVal value.
+            const timeDelta_t delta = cmpTimeUs(now, timerVal[timId]);
+            // max delay is limited to 5s
+            if (delta < 0 && delta > -MAX_TIMER_DELAY)
+                continue;  // not ready yet
+            timActive |= 1 << timId;
+            if (delta >= 100 * 1000 || delta < 0) {
+                timerVal[timId] = now;
+            }
         }
     }
 
@@ -1086,7 +1118,7 @@ void ledStripUpdate(timeUs_t currentTimeUs)
         bool updateNow = timActive & (1 << timId);
         (*layerTable[timId])(updateNow, timer);
     }
-    ws2811UpdateStrip();
+    ws2811UpdateStrip((ledStripFormatRGB_e)ledStripConfig()->ledstrip_grb_rgb);
 }
 
 bool parseColor(int index, const char *colorConfig)
@@ -1181,6 +1213,6 @@ static void ledStripDisable(void)
 {
     setStripColor(&HSV(BLACK));
 
-    ws2811UpdateStrip();
+    ws2811UpdateStrip((ledStripFormatRGB_e)ledStripConfig()->ledstrip_grb_rgb);
 }
 #endif

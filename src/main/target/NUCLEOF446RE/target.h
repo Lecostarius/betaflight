@@ -1,16 +1,21 @@
 /*
- * This software is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This file is part of Cleanflight and Betaflight.
  *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
@@ -22,7 +27,8 @@
 
 #define LED0_PIN                PA5  // Onboard LED
 
-//#define BEEPER                  PD12
+//#define USE_BEEPER
+//#define BEEPER_PIN                PD12
 
 #define USE_EXTI
 
@@ -45,11 +51,8 @@
 #define USE_ACC_SPI_MPU6500
 #define USE_ACC_SPI_MPU9250
 
-#define MPU9250_CS_PIN PB12
-#define MPU9250_SPI_INSTANCE SPI2
-
-#define MPU6500_CS_PIN PB12
-#define MPU6500_SPI_INSTANCE SPI2
+#define GYRO_1_SPI_INSTANCE     SPI2
+#define GYRO_1_CS_PIN           PB12
 
 #define USE_EXTI
 
@@ -157,8 +160,6 @@
 #define RSSI_ADC_PIN            PC2
 #define EXTERNAL1_ADC_PIN       PC3
 
-#define USE_ESC_SENSOR
-
 #define USE_SONAR
 #define SONAR_TRIGGER_PIN       PB0
 #define SONAR_ECHO_PIN          PB1
@@ -170,5 +171,5 @@
 #define TARGET_IO_PORTC (0xffff & ~(BIT(15)|BIT(14)|BIT(13)))
 #define TARGET_IO_PORTD BIT(2)
 
-#define USABLE_TIMER_CHANNEL_COUNT 12
-#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) )
+#define USABLE_TIMER_CHANNEL_COUNT 8
+#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(8))

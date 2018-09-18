@@ -29,6 +29,7 @@ extern "C" {
 
     #include "pg/pg.h"
     #include "pg/pg_ids.h"
+    #include "pg/rx.h"
 
     #include "blackbox/blackbox.h"
     #include "blackbox/blackbox_fielddefs.h"
@@ -51,6 +52,7 @@ extern "C" {
 
     #include "fc/rc_controls.h"
     #include "fc/runtime_config.h"
+    #include "fc/core.h"
 
     #include "scheduler/scheduler.h"
 }
@@ -221,6 +223,10 @@ uint32_t fixedMillis;
 extern "C" {
 uint32_t millis(void) {
     return fixedMillis;
+}
+
+uint32_t micros(void) {
+    return fixedMillis * 1000;
 }
 }
 
@@ -697,10 +703,13 @@ void initRcProcessing(void) {}
 void changePidProfile(uint8_t) {}
 void pidInitConfig(const pidProfile_t *) {}
 void accSetCalibrationCycles(uint16_t) {}
-void gyroStartCalibration(void) {}
+void gyroStartCalibration(bool isFirstArmingCalibration)
+{
+    UNUSED(isFirstArmingCalibration);
+}
 void applyAndSaveAccelerometerTrimsDelta(rollAndPitchTrims_t*) {}
 void handleInflightCalibrationStickPosition(void) {}
-bool feature(uint32_t) { return false;}
+bool featureIsEnabled(uint32_t) { return false;}
 bool sensors(uint32_t) { return false;}
 void tryArm(void) {}
 void disarm(void) {}
@@ -730,3 +739,8 @@ PG_REGISTER(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 2);
 void resetArmingDisabled(void) {}
 timeDelta_t getTaskDeltaTime(cfTaskId_e) { return 20000; }
 }
+armingDisableFlags_e getArmingDisableFlags(void) {
+    return (armingDisableFlags_e) 0;
+}
+bool isTryingToArm(void) { return false; }
+void resetTryingToArm(void) {}

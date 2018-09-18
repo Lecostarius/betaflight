@@ -1,18 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
@@ -39,8 +42,11 @@
     #define LED1_PIN                        PB2
 #endif
 
-#define BEEPER                              PC15
+#define USE_BEEPER
+#define BEEPER_PIN                          PC15
 #define BEEPER_INVERTED
+
+#define ENABLE_DSHOT_DMAR                   true
 
 #if (SPRACINGF4NEO_REV >= 2)
     #define INVERTER_PIN_UART2              PB2
@@ -49,7 +55,8 @@
 #endif
 
 #define USE_EXTI
-#define MPU_INT_EXTI                        PC13
+#define USE_GYRO_EXTI
+#define GYRO_1_EXTI_PIN                     PC13
 
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
@@ -63,8 +70,8 @@
 #define USE_ACC
 #define USE_ACC_SPI_MPU6500
 
-#define ACC_MPU6500_ALIGN                   CW0_DEG
-#define GYRO_MPU6500_ALIGN                  CW0_DEG
+#define ACC_1_ALIGN                         CW0_DEG
+#define GYRO_1_ALIGN                        CW0_DEG
 
 #define USE_BARO
 #define USE_BARO_BMP280
@@ -73,6 +80,7 @@
 #define USE_MAG
 #define USE_MAG_AK8975
 #define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
 
 #define USE_VCP
 #define USE_UART1
@@ -168,8 +176,8 @@
 #define SDCARD_DMA_CHANNEL_TX               DMA1_Stream4
 #define SDCARD_DMA_CHANNEL                  0
 
-#define MPU6500_CS_PIN                      SPI1_NSS_PIN
-#define MPU6500_SPI_INSTANCE                SPI1
+#define GYRO_1_CS_PIN                       SPI1_NSS_PIN
+#define GYRO_1_SPI_INSTANCE                 SPI1
 
 #define USE_ADC
 #define ADC_INSTANCE                        ADC1
@@ -217,4 +225,8 @@
 #define TARGET_IO_PORTD                     (BIT(2))
 
 #define USABLE_TIMER_CHANNEL_COUNT          14 // 4xPWM, 6xESC, 2xESC via UART3 RX/TX, 1xLED Strip, 1xIR.
+#if (SPRACINGF4NEO_REV >= 3)
+#define USED_TIMERS                         (TIM_N(1) | TIM_N(2) | TIM_N(4) | TIM_N(8) | TIM_N(9))
+#else
 #define USED_TIMERS                         (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(8) | TIM_N(9))
+#endif

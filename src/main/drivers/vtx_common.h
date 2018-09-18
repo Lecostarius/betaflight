@@ -1,18 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 /* Created by jflyper */
@@ -24,7 +27,7 @@
 #include "platform.h"
 #include "common/time.h"
 
-
+#define VTX_SETTINGS_NO_BAND        0 // used for custom frequency selection mode
 #define VTX_SETTINGS_MIN_BAND       1
 #define VTX_SETTINGS_MAX_BAND       5
 #define VTX_SETTINGS_MIN_CHANNEL    1
@@ -37,7 +40,6 @@
 #define VTX_SETTINGS_DEFAULT_CHANNEL            1
 #define VTX_SETTINGS_DEFAULT_FREQ               5740
 #define VTX_SETTINGS_DEFAULT_PITMODE_FREQ       0
-#define VTX_SETTINGS_DEFAULT_LOW_POWER_DISARM   0
 
 #define VTX_SETTINGS_MAX_FREQUENCY_MHZ 5999          //max freq (in MHz) for 'vtx_freq' setting
 
@@ -163,7 +165,8 @@ vtxDevice_t *vtxCommonDevice(void);
 
 // VTable functions
 void vtxCommonProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs);
-uint8_t vtxCommonGetDeviceType(const vtxDevice_t *vtxDevice);
+vtxDevType_e vtxCommonGetDeviceType(const vtxDevice_t *vtxDevice);
+bool vtxCommonDeviceIsReady(const vtxDevice_t *vtxDevice);
 void vtxCommonSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_t channel);
 void vtxCommonSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t level);
 void vtxCommonSetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff);

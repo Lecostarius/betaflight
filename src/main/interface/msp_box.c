@@ -1,18 +1,21 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdbool.h>
@@ -41,7 +44,6 @@
 #include "pg/piniobox.h"
 
 
-#ifndef USE_OSD_SLAVE
 // permanent IDs must uniquely identify BOX meaning, DO NOT REUSE THEM!
 static const box_t boxes[CHECKBOX_ITEM_COUNT] = {
     { BOXARM, "ARM", 0 },
@@ -53,27 +55,27 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT] = {
     { BOXHEADFREE, "HEADFREE", 6 },
     { BOXHEADADJ, "HEADADJ", 7 },
     { BOXCAMSTAB, "CAMSTAB", 8 },
-    { BOXCAMTRIG, "CAMTRIG", 9 },
+//    { BOXCAMTRIG, "CAMTRIG", 9 },
     { BOXGPSHOME, "GPS HOME", 10 },
     { BOXGPSHOLD, "GPS HOLD", 11 },
     { BOXPASSTHRU, "PASSTHRU", 12 },
     { BOXBEEPERON, "BEEPER", 13 },
-    { BOXLEDMAX, "LEDMAX", 14 },
+//    { BOXLEDMAX, "LEDMAX", 14 }, (removed)
     { BOXLEDLOW, "LEDLOW", 15 },
-    { BOXLLIGHTS, "LLIGHTS", 16 },
+//    { BOXLLIGHTS, "LLIGHTS", 16 }, (removed)
     { BOXCALIB, "CALIB", 17 },
-    { BOXGOV, "GOVERNOR", 18 },
+//    { BOXGOV, "GOVERNOR", 18 }, (removed)
     { BOXOSD, "OSD DISABLE SW", 19 },
     { BOXTELEMETRY, "TELEMETRY", 20 },
-    { BOXGTUNE, "GTUNE", 21 },
-    { BOXRANGEFINDER, "RANGEFINDER", 22 },
+//    { BOXGTUNE, "GTUNE", 21 }, (removed)
+//    { BOXRANGEFINDER, "RANGEFINDER", 22 }, (removed)
     { BOXSERVO1, "SERVO1", 23 },
     { BOXSERVO2, "SERVO2", 24 },
     { BOXSERVO3, "SERVO3", 25 },
     { BOXBLACKBOX, "BLACKBOX", 26 },
     { BOXFAILSAFE, "FAILSAFE", 27 },
     { BOXAIRMODE, "AIR MODE", 28 },
-    { BOX3DDISABLE, "DISABLE 3D", 29},
+    { BOX3D, "DISABLE / SWITCH 3D", 29},
     { BOXFPVANGLEMIX, "FPV ANGLE MIX", 30},
     { BOXBLACKBOXERASE, "BLACKBOX ERASE (>30s)", 31 },
     { BOXCAMERA1, "CAMERA CONTROL 1", 32},
@@ -82,12 +84,17 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT] = {
     { BOXFLIPOVERAFTERCRASH, "FLIP OVER AFTER CRASH", 35 },
     { BOXPREARM, "PREARM", 36 },
     { BOXBEEPGPSCOUNT, "BEEP GPS SATELLITE COUNT", 37 },
-    { BOX3DONASWITCH, "3D ON A SWITCH", 38 },
+//    { BOX3DONASWITCH, "3D ON A SWITCH", 38 }, (removed)
     { BOXVTXPITMODE, "VTX PIT MODE", 39 },
     { BOXUSER1, "USER1", 40 },
     { BOXUSER2, "USER2", 41 },
     { BOXUSER3, "USER3", 42 },
     { BOXUSER4, "USER4", 43 },
+    { BOXPIDAUDIO, "PID AUDIO", 44 },
+    { BOXPARALYZE, "PARALYZE", 45 },
+    { BOXGPSRESCUE, "GPS RESCUE", 46 },
+    { BOXACROTRAINER, "ACRO TRAINER", 47 },
+    { BOXVTXCONTROLDISABLE, "DISABLE VTX CONTROL", 48},
 };
 
 // mask of enabled IDs, calculated on startup based on enabled features. boxId_e is used as bit index
@@ -159,11 +166,11 @@ void initActiveBoxIds(void)
 #define BME(boxId) do { bitArraySet(&ena, boxId); } while (0)
     BME(BOXARM);
     BME(BOXPREARM);
-    if (!feature(FEATURE_AIRMODE)) {
+    if (!featureIsEnabled(FEATURE_AIRMODE)) {
         BME(BOXAIRMODE);
     }
 
-    if (!feature(FEATURE_ANTI_GRAVITY)) {
+    if (!featureIsEnabled(FEATURE_ANTI_GRAVITY)) {
         BME(BOXANTIGRAVITY);
     }
 
@@ -174,12 +181,6 @@ void initActiveBoxIds(void)
         BME(BOXHEADADJ);
     }
 
-#ifdef USE_BARO
-    if (sensors(SENSOR_BARO)) {
-        BME(BOXBARO);
-    }
-#endif
-
 #ifdef USE_MAG
     if (sensors(SENSOR_MAG)) {
         BME(BOXMAG);
@@ -187,16 +188,13 @@ void initActiveBoxIds(void)
 #endif
 
 #ifdef USE_GPS
-    if (feature(FEATURE_GPS)) {
-        BME(BOXGPSHOME);
-        BME(BOXGPSHOLD);
-        BME(BOXBEEPGPSCOUNT);
-    }
+    if (featureIsEnabled(FEATURE_GPS)) {
+#ifdef USE_GPS_RESCUE
+        if (!featureIsEnabled(FEATURE_3D)) {
+            BME(BOXGPSRESCUE);
+        }
 #endif
-
-#ifdef USE_RANGEFINDER
-    if (feature(FEATURE_RANGEFINDER)) { // XXX && sensors(SENSOR_RANGEFINDER)?
-        BME(BOXRANGEFINDER);
+        BME(BOXBEEPGPSCOUNT);
     }
 #endif
 
@@ -209,7 +207,7 @@ void initActiveBoxIds(void)
     BME(BOXBEEPERON);
 
 #ifdef USE_LED_STRIP
-    if (feature(FEATURE_LED_STRIP)) {
+    if (featureIsEnabled(FEATURE_LED_STRIP)) {
         BME(BOXLEDLOW);
     }
 #endif
@@ -223,27 +221,26 @@ void initActiveBoxIds(void)
 
     BME(BOXFPVANGLEMIX);
 
-    if (feature(FEATURE_3D)) {
-        BME(BOX3DDISABLE);
-        BME(BOX3DONASWITCH);
+    if (featureIsEnabled(FEATURE_3D)) {
+        BME(BOX3D);
     }
 
     if (isMotorProtocolDshot()) {
         BME(BOXFLIPOVERAFTERCRASH);
     }
 
-    if (feature(FEATURE_SERVO_TILT)) {
+    if (featureIsEnabled(FEATURE_SERVO_TILT)) {
         BME(BOXCAMSTAB);
     }
 
-    if (feature(FEATURE_INFLIGHT_ACC_CAL)) {
+    if (featureIsEnabled(FEATURE_INFLIGHT_ACC_CAL)) {
         BME(BOXCALIB);
     }
 
     BME(BOXOSD);
 
 #ifdef USE_TELEMETRY
-    if (feature(FEATURE_TELEMETRY) && telemetryConfig()->telemetry_switch) {
+    if (featureIsEnabled(FEATURE_TELEMETRY)) {
         BME(BOXTELEMETRY);
     }
 #endif
@@ -264,24 +261,42 @@ void initActiveBoxIds(void)
 
 #if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
     BME(BOXVTXPITMODE);
+    BME(BOXVTXCONTROLDISABLE);
 #endif
+
+    BME(BOXPARALYZE);
 
 #ifdef USE_PINIOBOX
     // Turn BOXUSERx only if pinioBox facility monitors them, as the facility is the only BOXUSERx observer.
     // Note that pinioBoxConfig can be set to monitor any box.
     for (int i = 0; i < PINIO_COUNT; i++) {
-        switch(pinioBoxConfig()->boxId[i]) {
-        case BOXUSER1:
-        case BOXUSER2:
-        case BOXUSER3:
-        case BOXUSER4:
-            BME(pinioBoxConfig()->boxId[i]);
-            break;
-        default:
-            break;
+        if (pinioBoxConfig()->permanentId[i] != PERMANENT_ID_NONE) {
+            const box_t *box = findBoxByPermanentId(pinioBoxConfig()->permanentId[i]);
+            if (box) {
+                switch(box->boxId) {
+                case BOXUSER1:
+                case BOXUSER2:
+                case BOXUSER3:
+                case BOXUSER4:
+                    BME(box->boxId);
+                    break;
+                default:
+                    break;
+                }
+            }
         }
     }
 #endif
+
+#if defined(USE_PID_AUDIO)
+    BME(BOXPIDAUDIO);
+#endif
+
+#if defined(USE_ACRO_TRAINER) && defined(USE_ACC)
+    if (sensors(SENSOR_ACC)) {
+        BME(BOXACROTRAINER);
+    }
+#endif // USE_ACRO_TRAINER
 
 #undef BME
     // check that all enabled IDs are in boxes array (check may be skipped when using findBoxById() functions)
@@ -329,4 +344,3 @@ int packFlightModeFlags(boxBitmask_t *mspFlightModeFlags)
     // return count of used bits
     return mspBoxIdx;
 }
-#endif // USE_OSD_SLAVE

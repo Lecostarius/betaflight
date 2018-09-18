@@ -1,62 +1,67 @@
 /*
- * This is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This file is part of Cleanflight and Betaflight.
  *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
 
 //#define USE_TARGET_CONFIG
 
+#ifdef KAKUTEF7V2
+#define TARGET_BOARD_IDENTIFIER "KT76"
+#else
 #define TARGET_BOARD_IDENTIFIER "KTF7"
+#endif
+
+#ifdef KAKUTEF7V2
+#define USBD_PRODUCT_STRING "KakuteF7-V2"
+#else
 #define USBD_PRODUCT_STRING "KakuteF7"
+#endif
 
 #define LED0_PIN                PA2
 
-#define BEEPER                  PD15
+#define USE_BEEPER
+#define BEEPER_PIN              PD15
 #define BEEPER_INVERTED
+
+//define camera control
+#define CAMERA_CONTROL_PIN      PE13
 
 #define USE_ACC
 #define USE_GYRO
-#define USE_DUAL_GYRO
+#define USE_EXTI
 
 // ICM-20689
 #define USE_ACC_SPI_ICM20689
 #define USE_GYRO_SPI_ICM20689
-#define GYRO_ICM20689_ALIGN      CW270_DEG
-#define ACC_ICM20689_ALIGN       CW270_DEG
-//#define MPU_INT_EXTI               PE1
+#define GYRO_1_CS_PIN           SPI4_NSS_PIN
+#define GYRO_1_SPI_INSTANCE     SPI4
+#define GYRO_1_ALIGN            CW270_DEG
+#define ACC_1_ALIGN             CW270_DEG
 
-// MPU6000
-#define USE_ACC_SPI_MPU6000
-#define USE_GYRO_SPI_MPU6000
-#define GYRO_MPU6000_ALIGN       CW270_DEG
-#define ACC_MPU6000_ALIGN        CW270_DEG
-//#define MPU_INT_EXTI                PB9
-
-#define MPU6000_CS_PIN           SPI3_NSS_PIN
-#define MPU6000_SPI_INSTANCE     SPI3
-#define ICM20689_CS_PIN          SPI4_NSS_PIN
-#define ICM20689_SPI_INSTANCE    SPI4
-#define GYRO_1_CS_PIN            MPU6000_CS_PIN
-#define GYRO_0_CS_PIN            ICM20689_CS_PIN
-
-
-//#define USE_MPU_DATA_READY_SIGNAL
-
-#define USE_EXTI
+#define USE_GYRO_EXTI
+#define GYRO_1_EXTI_PIN         PE1
+#define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_VCP
-#define VBUS_SENSING_PIN        PA8
+#define USE_USB_DETECT
+#define USB_DETECT_PIN          PA8
 
 #define USE_UART1
 #define UART1_TX_PIN            PA9
@@ -94,7 +99,6 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_1   //SD Card
 #define USE_SPI_DEVICE_2   //OSD
-#define USE_SPI_DEVICE_3   //MPU6000
 #define USE_SPI_DEVICE_4   //ICM20689
 
 #define SPI1_NSS_PIN            PA4
@@ -107,16 +111,10 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-#define SPI3_NSS_PIN            PA15
-#define SPI3_SCK_PIN            PB3
-#define SPI3_MISO_PIN           PB4
-#define SPI3_MOSI_PIN           PB5
-
 #define SPI4_NSS_PIN            PE4
 #define SPI4_SCK_PIN            PE2
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
-
 
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI2
@@ -150,6 +148,7 @@
 
 #define USE_MAG
 #define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
 #define MAG_I2C_INSTANCE      I2C_DEVICE
 
 #define SENSORS_SET (SENSOR_ACC | SENSOR_BARO)
@@ -181,4 +180,3 @@
 #define USABLE_TIMER_CHANNEL_COUNT 8
 
 #define USED_TIMERS  ( TIM_N(1) | TIM_N(5) | TIM_N(3) | TIM_N(4) | TIM_N(8) )
-

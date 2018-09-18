@@ -1,16 +1,21 @@
 /*
- * This is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This file is part of Cleanflight and Betaflight.
  *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
+ *
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this software.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
@@ -20,13 +25,14 @@
 #define USE_TARGET_CONFIG
 
 #define LED0_PIN                PB5
-#define BEEPER                  PB4
+#define USE_BEEPER
+#define BEEPER_PIN              PB4
 #define BEEPER_INVERTED
 
 #define INVERTER_PIN_UART6      PC8
 
-#define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
+#define GYRO_1_CS_PIN           PA4
+#define GYRO_1_SPI_INSTANCE     SPI1
 
 #define USE_ACC
 #define USE_ACC_SPI_MPU6000
@@ -34,11 +40,12 @@
 #define USE_GYRO
 #define USE_GYRO_SPI_MPU6000
 
-#define GYRO_MPU6000_ALIGN      CW270_DEG
-#define ACC_MPU6000_ALIGN       CW270_DEG
+#define GYRO_1_ALIGN            CW270_DEG
+#define ACC_1_ALIGN             CW270_DEG
 
 #define USE_EXTI
-#define MPU_INT_EXTI            PC4
+#define USE_GYRO_EXTI
+#define GYRO_1_EXTI_PIN         PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_BARO
@@ -67,7 +74,8 @@
 #define SDCARD_DMA_CHANNEL                  0
 
 #define USE_VCP
-#define VBUS_SENSING_PIN PC5
+#define USE_USB_DETECT
+#define USB_DETECT_PIN   PC5
 
 #define USE_UART1
 #define UART1_RX_PIN            PA10
@@ -113,7 +121,6 @@
 #define DEFAULT_FEATURES        (FEATURE_OSD)
 #define AVOID_UART1_FOR_PWM_PPM
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
-#define TELEMETRY_UART          SERIAL_PORT_USART6
 #define SERIALRX_UART           SERIAL_PORT_USART1
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
@@ -124,4 +131,4 @@
 #define TARGET_IO_PORTD BIT(2)
 
 #define USABLE_TIMER_CHANNEL_COUNT 13
-#define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9))
+#define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(8) )
